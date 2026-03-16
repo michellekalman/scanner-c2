@@ -9,7 +9,7 @@ import json
 load_dotenv()
 
 
-def get_db_connection():
+def connect_to_db():
     """
     Creates a connection to the PostgreSQL database.
     Uses RealDictCursor so results look like Python dictionaries:
@@ -30,7 +30,7 @@ def get_db_connection():
 
 
 def init_job(config_data: dict):
-    conn = get_db_connection()
+    conn = connect_to_db()
     if not conn:
         return None
 
@@ -57,7 +57,7 @@ def init_job(config_data: dict):
 
 def get_job_status(job_id: int):
     """Fetches the status of a specific job ID."""
-    conn = get_db_connection()
+    conn = connect_to_db()
     if not conn:
         return None
 
