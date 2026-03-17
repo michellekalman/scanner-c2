@@ -1,5 +1,4 @@
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
 from app.database import init_job, get_job_status, get_all_scans
 from fastapi.staticfiles import StaticFiles
 
