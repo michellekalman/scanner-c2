@@ -29,6 +29,22 @@ def connect_to_db():
         return None
 
 
+def get_active_scan_count():
+    """Counts how many scans are currently pending or running."""
+    conn = connect_to_db()
+    if not conn:
+        return 0
+
+    cur = conn.cursor()
+    # We check for both pending and running so the queue doesn't get overloaded
+    cur.execute("SELECT COUNT(*) FROM scan_jobs WHERE status IN ('pending', 'running');")
+    count = cur.fetchone()[0]
+
+    cur.close()
+    conn.close()
+    return count
+
+
 def init_job(config_data: dict):
     conn = connect_to_db()
     if not conn:
