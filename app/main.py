@@ -37,7 +37,8 @@ async def check_scan_status(job_id: int):
 
 
 @app.get("/v1/scans")
-async def list_scans():
-    scans = get_all_scans()
+async def list_scans(limit: int = 20, offset: int = 0):
+    """Fetches a list of scans with pagination."""
+    scans = get_all_scans(limit=limit, offset=offset)
     return scans
 

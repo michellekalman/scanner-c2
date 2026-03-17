@@ -6,9 +6,10 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css">
     <style>
         body { max-width: 900px; margin: 20px auto; }
-        .status-pending { color: orange; }
-        .status-running { color: blue; }
-        .status-completed { color: green; }
+        .status-pending { color: #d97706; font-weight: bold; }
+        .status-running { color: #2563eb; font-weight: bold; }
+        .status-completed { color: #16a34a; font-weight: bold; }
+        .status-failed { color: #dc2626; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -26,13 +27,13 @@
             <label>Ports S3 URL</label>
             <input type="text" id="ports_s3_url" placeholder="s3://bucket/ports.txt" required>
 
-            <div style="display: flex; gap: 10px;">
+            <div style="display: flex; gap: 15px;">
                 <div><label>Fleet Size</label><input type="number" id="fleet_size" value="5"></div>
                 <div><label>Masscan Rate</label><input type="number" id="masscan_rate" value="1000"></div>
                 <div><label>Partitions</label><input type="number" id="partitions" value="10"></div>
             </div>
 
-            <button type="submit">Deploy Axiom Fleet</button>
+            <button type="submit" style="margin-top: 15px;">Deploy Axiom Fleet</button>
         </form>
     </section>
 
@@ -52,9 +53,13 @@
             <tbody id="scanTable">
                 </tbody>
         </table>
+        <button id="loadMoreBtn" onclick="loadMore()" style="display:none; margin-top: 15px; width: 100%;">Load Older Scans</button>
     </section>
 
     <script>
+        let currentOffset = 0;
+        const limit = 20;
+
         // Submit the form to the API
         document.getElementById('scanForm').onsubmit = async (e) => {
             e.preventDefault();
@@ -73,28 +78,58 @@
                 body: JSON.stringify(data)
             });
 
-            if (response.ok) alert("Scan Queued!");
-            loadScans();
+            if (response.ok) {
+                alert("Scan Queued!");
+                currentOffset = 0; // Reset to page 1 to see the new scan
+                loadScans(false);
+            }
         };
 
-        // Load the list of scans
-        async function loadScans() {
-            // We'll need to add an endpoint to the API to 'list' all scans
-            const response = await fetch('/v1/scans');
-            const scans = await response.json();
-            const tbody = document.getElementById('scanTable');
-            tbody.innerHTML = scans.map(s => `
-                <tr>
-                    <td>${s.id}</td>
-                    <td>${s.target}</td>
-                    <td class="status-${s.status}">${s.status}</td>
-                    <td>${s.duration || '--'}</td>
-                </tr>
-            `).join('');
+        // Fetch and display scans
+        async function loadScans(append = false) {
+            try {
+                const response = await fetch(`/v1/scans?limit=${limit}&offset=${currentOffset}`);
+                const scans = await response.json();
+                const tbody = document.getElementById('scanTable');
+
+                // Handle null targets and durations gracefully
+                const rowsHtml = scans.map(s => `
+                    <tr>
+                        <td>${s.id}</td>
+                        <td>${s.target || '<em>Unknown</em>'}</td>
+                        <td class="status-${s.status}">${s.status}</td>
+                        <td>${s.duration ? s.duration : '--'}</td>
+                    </tr>
+                `).join('');
+
+                if (append) {
+                    tbody.innerHTML += rowsHtml;
+                } else {
+                    tbody.innerHTML = rowsHtml;
+                }
+
+                // Show "Load More" button if we got exactly 20 scans
+                document.getElementById('loadMoreBtn').style.display = scans.length === limit ? 'block' : 'none';
+            } catch (error) {
+                console.error("Error loading scans:", error);
+            }
         }
 
-        setInterval(loadScans, 5000); // Refresh every 5 seconds
-        loadScans();
+        // When the user clicks "Load Older Scans"
+        function loadMore() {
+            currentOffset += limit;
+            loadScans(true);
+        }
+
+        // Auto-refresh every 5 seconds, BUT ONLY if we are looking at the newest page
+        setInterval(() => {
+            if (currentOffset === 0) {
+                loadScans(false);
+            }
+        }, 5000);
+
+        // Initial load
+        loadScans(false);
     </script>
 </body>
 </html>
