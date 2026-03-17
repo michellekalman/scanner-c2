@@ -3,18 +3,10 @@ from pydantic import BaseModel
 from app.database import init_job, get_job_status, get_all_scans
 from fastapi.staticfiles import StaticFiles
 
+from app.entities.scan import ScanConfig
+
 app = FastAPI(title="Scanner Control Hub")
 app.mount("/static", StaticFiles(directory="static"), name="static")
-
-
-# This defines exactly what the M&C must send to the API
-class ScanConfig(BaseModel):
-    target: str
-    subnets_s3_url: str
-    ports_s3_url: str
-    fleet_size: int = 5
-    masscan_rate: int = 1000
-    partitions: int = 10
 
 
 @app.post("/v1/scan", status_code=201)
