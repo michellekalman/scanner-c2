@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Scanner M&C Dashboard</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css">
+    <style>
+        body { max-width: 900px; margin: 20px auto; }
+        .status-pending { color: orange; }
+        .status-running { color: blue; }
+        .status-completed { color: green; }
+    </style>
+</head>
+<body>
+    <h1>🚀 Scanner Control Hub</h1>
+
+    <section>
+        <h2>New Scan Request</h2>
+        <form id="scanForm">
+            <label>Target Name</label>
+            <input type="text" id="target" value="Company-X-Scan" required>
+
+            <label>Subnets S3 URL</label>
+            <input type="text" id="subnets_s3_url" placeholder="s3://bucket/subnets.txt" required>
+
+            <label>Ports S3 URL</label>
+            <input type="text" id="ports_s3_url" placeholder="s3://bucket/ports.txt" required>
+
+            <div style="display: flex; gap: 10px;">
+                <div><label>Fleet Size</label><input type="number" id="fleet_size" value="5"></div>
+                <div><label>Masscan Rate</label><input type="number" id="masscan_rate" value="1000"></div>
+                <div><label>Partitions</label><input type="number" id="partitions" value="10"></div>
+            </div>
+
+            <button type="submit">Deploy Axiom Fleet</button>
+        </form>
+    </section>
+
+    <hr>
+
+    <section>
+        <h2>Recent Scans</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Target</th>
+                    <th>Status</th>
+                    <th>Duration</th>
+                </tr>
+            </thead>
+            <tbody id="scanTable">
+                </tbody>
+        </table>
+    </section>
+
+    <script>
+        // Submit the form to the API
+        document.getElementById('scanForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const data = {
+                target: document.getElementById('target').value,
+                subnets_s3_url: document.getElementById('subnets_s3_url').value,
+                ports_s3_url: document.getElementById('ports_s3_url').value,
+                fleet_size: parseInt(document.getElementById('fleet_size').value),
+                masscan_rate: parseInt(document.getElementById('masscan_rate').value),
+                partitions: parseInt(document.getElementById('partitions').value)
+            };
+
+            const response = await fetch('/v1/scan', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(data)
+            });
+
+            if (response.ok) alert("Scan Queued!");
+            loadScans();
+        };
+
+        // Load the list of scans
+        async function loadScans() {
+            // We'll need to add an endpoint to the API to 'list' all scans
+            const response = await fetch('/v1/scans');
+            const scans = await response.json();
+            const tbody = document.getElementById('scanTable');
+            tbody.innerHTML = scans.map(s => `
+                <tr>
+                    <td>${s.id}</td>
+                    <td>${s.target}</td>
+                    <td class="status-${s.status}">${s.status}</td>
+                    <td>${s.duration || '--'}</td>
+                </tr>
+            `).join('');
+        }
+
+        setInterval(loadScans, 5000); // Refresh every 5 seconds
+        loadScans();
+    </script>
+</body>
+</html>

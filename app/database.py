@@ -69,3 +69,13 @@ def get_job_status(job_id: int):
     cur.close()
     conn.close()
     return job
+
+
+def get_all_scans():
+    conn = connect_to_db()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    cur.execute("SELECT id, target, status, duration FROM scan_jobs ORDER BY created_at DESC LIMIT 20;")
+    rows = cur.fetchall()
+    cur.close()
+    conn.close()
+    return rows

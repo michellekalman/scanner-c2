@@ -1,6 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from app.database import init_job, get_job_status
+from app.database import init_job, get_job_status, get_all_scans
+from fastapi.staticfiles import StaticFiles
 
 app = FastAPI(title="Scanner Control Hub")
 
@@ -32,3 +33,10 @@ async def check_scan_status(job_id: int):
     if not job:
         raise HTTPException(status_code=404, detail="Job not found.")
     return job
+
+
+@app.get("/v1/scans")
+async def list_scans():
+    scans = get_all_scans()
+    return scans
+
