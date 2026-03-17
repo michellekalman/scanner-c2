@@ -4,6 +4,7 @@ from app.database import init_job, get_job_status, get_all_scans
 from fastapi.staticfiles import StaticFiles
 
 app = FastAPI(title="Scanner Control Hub")
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
 # This defines exactly what the M&C must send to the API
