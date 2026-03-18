@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, BackgroundTasks
 from fastapi.staticfiles import StaticFiles
 import os
 
@@ -6,7 +6,8 @@ from sqlalchemy.orm import Session
 
 from app.entities.scan import ScanConfig
 from app.database import get_db_session
-from app.entities.models import ScanJob
+from app.entities.models import ScanJob, ScanStatus
+from app.scanner import MockScannerService
 
 app = FastAPI(title="Scanner Control Hub")
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -16,8 +17,8 @@ MAX_CONCURRENT_SCANS = int(os.getenv("MAX_CONCURRENT_SCANS", 3))
 
 
 @app.post("/v1/scan", status_code=201)
-async def start_scan(config: ScanConfig, db: Session = Depends(get_db_session)):
-    active_scans = db.query(ScanJob).filter(ScanJob.status.in_(['pending', 'running'])).count()
+async def start_scan(config: ScanConfig, background_tasks: BackgroundTasks, db: Session = Depends(get_db_session)):
+    active_scans = db.query(ScanJob).filter(ScanJob.status.in_([ScanStatus.PENDING, ScanStatus.RUNNING])).count()
     if active_scans >= MAX_CONCURRENT_SCANS:
         raise HTTPException(status_code=429, detail="System at capacity.")
 
@@ -29,7 +30,13 @@ async def start_scan(config: ScanConfig, db: Session = Depends(get_db_session)):
     db.commit()
     db.refresh(new_job)
 
-    return {"job_id": new_job.id, "status": new_job.status}
+    background_tasks.add_task(MockScannerService.run_scan, job_id=new_job.id, target=config.target)
+
+    return {
+        "message": "Scan successfully initiated.",
+        "job_id": new_job.id,
+        "status": ScanStatus.PENDING
+    }
 
 
 @app.get("/v1/scans")
