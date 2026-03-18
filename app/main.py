@@ -1,8 +1,12 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
 from fastapi.staticfiles import StaticFiles
 import os
-from app.database import init_job, get_job_status, get_all_scans, get_active_scan_count
+
+from sqlalchemy.orm import Session
+
 from app.entities.scan import ScanConfig
+from app.database import get_db_session
+from app.entities.models import ScanJob
 
 app = FastAPI(title="Scanner Control Hub")
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -12,33 +16,32 @@ MAX_CONCURRENT_SCANS = int(os.getenv("MAX_CONCURRENT_SCANS", 3))
 
 
 @app.post("/v1/scan", status_code=201)
-async def start_scan(config: ScanConfig):
-    active_scans = get_active_scan_count()
+async def start_scan(config: ScanConfig, db: Session = Depends(get_db_session)):
+    active_scans = db.query(ScanJob).filter(ScanJob.status.in_(['pending', 'running'])).count()
     if active_scans >= MAX_CONCURRENT_SCANS:
-        raise HTTPException(
-            status_code=429,  # 429 means 'Too Many Requests'
-            detail=f"System at capacity. There are already {active_scans} active scans. Please wait."
-        )
+        raise HTTPException(status_code=429, detail="System at capacity.")
 
-    job_id = init_job(config.dict())
+    new_job = ScanJob(
+        target=config.target,
+        config=config.dict()
+    )
+    db.add(new_job)
+    db.commit()
+    db.refresh(new_job)
 
-    if not job_id:
-        raise HTTPException(status_code=500, detail="Database insertion failed.")
-
-    return {"job_id": job_id, "status": "pending"}
-
-
-@app.get("/v1/scan/{job_id}")
-async def check_scan_status(job_id: int):
-    job = get_job_status(job_id)
-    if not job:
-        raise HTTPException(status_code=404, detail="Job not found.")
-    return job
+    return {"job_id": new_job.id, "status": new_job.status}
 
 
 @app.get("/v1/scans")
-async def list_scans(limit: int = 20, offset: int = 0):
-    """Fetches a list of scans with pagination."""
-    scans = get_all_scans(limit=limit, offset=offset)
+async def list_scans(limit: int = 20, offset: int = 0, db: Session = Depends(get_db_session)):
+    scans = db.query(ScanJob).order_by(ScanJob.created_at.desc()).limit(limit).offset(offset).all()
     return scans
+
+
+@app.get("/v1/scan/{job_id}")
+async def check_scan_status(job_id: int, db: Session = Depends(get_db_session)):
+    job = db.query(ScanJob).filter(ScanJob.id == job_id).first()
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found.")
+    return job
 
