@@ -30,5 +30,11 @@ jobs:
         flake8 . --exclude=alembic,venv --count --max-line-length=127 --statistics
 
     - name: Test with pytest
+      env:
+        DB_USER: fake_user
+        DB_PASS: fake_password
+        DB_HOST: localhost
+        DB_PORT: 5432
+        DB_NAME: fake_db
       run: |
         pytest
