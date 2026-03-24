@@ -35,7 +35,7 @@ async def start_scan(config: ScanConfig, background_tasks: BackgroundTasks, db: 
 
     new_job = ScanJob(
         target=config.target,
-        config=config.dict()
+        config=config.model_dump()
     )
     db.add(new_job)
     db.commit()
