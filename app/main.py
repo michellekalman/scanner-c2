@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 app = FastAPI(title="Scanner Control Hub")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # Note: In production, you would put your actual Base44 URL here!
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
