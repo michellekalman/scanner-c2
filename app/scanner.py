@@ -12,7 +12,7 @@ class MockScannerService:
     """
 
     @staticmethod
-    async def run_scan(job_id: int):
+    async def run_scan(job_id: int, **kwargs):
         logger.info(f"Initiating scan sequence for Job {job_id}...")
         db = SessionLocal()
         try:
