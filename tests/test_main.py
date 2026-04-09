@@ -27,8 +27,8 @@ def test_start_scan_success():
     with patch("app.main.MockScannerService.run_scan") as mock_run_scan:
         payload = {
             "target": "austria",
-            "subnets_s3_url": "s3://my-bucket/subnets.txt",
-            "ports_s3_url": "s3://my-bucket/ports.txt"
+            "subnets_s3_url": "https://buck1.ams3.digitaloceanspaces.com/src/subnets.txt",
+            "ports_s3_url": "https://buck1.ams3.digitaloceanspaces.com/src/ports.txt"
         }
         response = client.post("/v1/scan", json=payload)
 
@@ -55,8 +55,8 @@ def test_start_scan_system_at_capacity():
 
     payload = {
         "target": "germany",
-        "subnets_s3_url": "s3://my-bucket/subnets.txt",
-        "ports_s3_url": "s3://my-bucket/ports.txt"
+        "subnets_s3_url": "https://buck1.ams3.digitaloceanspaces.com/src/subnets.txt",
+        "ports_s3_url": "https://buck1.ams3.digitaloceanspaces.com/src/ports.txt"
     }
     response = client.post("/v1/scan", json=payload)
 

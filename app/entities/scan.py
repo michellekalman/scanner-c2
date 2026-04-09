@@ -8,7 +8,8 @@ class ScanConfig(BaseModel):
     target: str
     subnets_s3_url: Optional[str] = None
     manual_subnets: Optional[List[str]] = None
-    ports_s3_url: str
+    ports_s3_url: Optional[str] = None
+    manual_ports: Optional[List[int]] = None
     fleet_size: int = 5
     masscan_rate: int = 1000
     partitions: int = 10
@@ -22,8 +23,15 @@ class ScanConfig(BaseModel):
         return data
 
     @model_validator(mode='after')
-    def check_subnet_source(self):
-        """Ensures at least one subnet source is provided."""
+    def check_sources(self):
+        """Ensures at least one source is provided for both subnets and ports."""
+
+        # Validate Subnets
         if not self.subnets_s3_url and not self.manual_subnets:
             raise ValueError('Either subnets_s3_url or manual_subnets must be provided')
+
+        # Validate Ports
+        if not self.ports_s3_url and not self.manual_ports:
+            raise ValueError('Either ports_s3_url or manual_ports must be provided')
+
         return self
